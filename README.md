@@ -1,10 +1,16 @@
-
-# 🇬🇧 ENGLISH VERSION
 ## 📦 CiefpParabolaCZ – Version 1.0
 ## 🛰 Parabola.cz Viewer for Enigma2 (FullHD Edition)
 
 Version 1.0 introduces a fully redesigned and functional viewer for content
 from Parabola.cz, optimized for FullHD Enigma2 environments.
+
+![Plugin screenshot](https://github.com/ciefp/CiefpParabolaCZ/blob/main/ciefpparabolacz-1.jpg)  
+![Plugin screenshot](https://github.com/ciefp/CiefpParabolaCZ/blob/main/ciefpparabolacz-2.jpg)  
+![Plugin screenshot](https://github.com/ciefp/CiefpParabolaCZ/blob/main/ciefpparabolacz-3.jpg)  
+![Plugin screenshot](https://github.com/ciefp/CiefpParabolaCZ/blob/main/ciefpparabolacz-4.jpg) 
+![Plugin screenshot](https://github.com/ciefp/CiefpParabolaCZ/blob/main/ciefpparabolacz-5.jpg)  
+![Plugin screenshot](https://github.com/ciefp/CiefpParabolaCZ/blob/main/ciefpparabolacz-10.jpg)    
+
 
 ## 🔹 Main Features
 ## 📰 News Module
