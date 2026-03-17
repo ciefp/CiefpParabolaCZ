@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function
-
+from Screens.MessageBox import MessageBox
 from Screens.Screen import Screen
 from Components.ActionMap import ActionMap
 from Components.Sources.List import List
@@ -46,12 +46,14 @@ class CiefpNewsList(Screen):
             foregroundColor="#ffff00" backgroundColor="#050505" 
             halign="left" valign="center" />
 
-        <widget name="key_red" position="60,1000" size="600,40" font="Bold;28"
+        <widget name="key_red" position="60,1000" size="450,40" font="Bold;28"
             halign="center" valign="center" backgroundColor="#A00000" foregroundColor="#080808" />
-        <widget name="key_green" position="660,1000" size="600,40" font="Bold;28"
+        <widget name="key_green" position="530,1000" size="450,40" font="Bold;28"
             halign="center" valign="center" backgroundColor="#008000" foregroundColor="#080808" />
-        <widget name="key_yellow" position="1260,1000" size="600,40" font="Bold;28"
+        <widget name="key_yellow" position="1000,1000" size="450,40" font="Bold;28"
             halign="center" valign="center" backgroundColor="#B0A000" foregroundColor="#080808" />
+        <widget name="key_blue" position="1470,1000" size="390,40" font="Bold;28"
+            halign="center" valign="center" backgroundColor="#0000A0" foregroundColor="#FFFFFF" />
     </screen>
     """
 
@@ -74,6 +76,7 @@ class CiefpNewsList(Screen):
         self["key_red"] = Label("Back")
         self["key_green"] = Label("Next")
         self["key_yellow"] = Label("Prev")
+        self["key_blue"] = Label("Translate")
 
         self["list"] = List([], enableWrapAround=True)
 
@@ -85,6 +88,7 @@ class CiefpNewsList(Screen):
                 "yellow": self.prevUiPage,
                 "cancel": self.close,
                 "red": self.close,
+                "blue": self.translateSettings,
 
                 # LEFT/RIGHT = interna strana (10 stavki)
                 "left": self.prevUiPage,
@@ -100,7 +104,17 @@ class CiefpNewsList(Screen):
             -1,
         )
 
+        self.onShown.append(self._checkTranslateStatus)
         self.reloadWebPage()
+
+    def _checkTranslateStatus(self):
+        """Proverava da li je podešen API ključ i ažurira tekst dugmeta"""
+        from ..components.translator import Translator
+        translator = Translator()
+        if translator.api_key:
+            self["key_blue"].setText("Translate set")
+        else:
+            self["key_blue"].setText("Set API key")
 
     # ---------------- navigation ----------------
 
@@ -178,7 +192,7 @@ class CiefpNewsList(Screen):
         except Exception as e:
             self.items_all = []
             self["list"].setList([])
-            self["footer"].setText("Greška: %s" % str(e))
+            self["footer"].setText("Error: %s" % str(e))
             return
 
         # reset interne strane na 1 pri promeni web strane
@@ -212,26 +226,6 @@ class CiefpNewsList(Screen):
 
     # ---------------- open detail ----------------
 
-    def openItem(self):
-        sel = self["list"].getCurrent()
-        if not sel:
-            return
-
-        url = ""
-        try:
-            url = sel[3]
-        except Exception:
-            url = ""
-
-        if not url:
-            return
-
-        try:
-            from .news_detail import CiefpNewsDetail
-            self.session.open(CiefpNewsDetail, self.catName, url)
-        except Exception:
-            pass
-
     def openArticle(self):
         cur = self["list"].getCurrent()
         if not cur:
@@ -249,3 +243,146 @@ class CiefpNewsList(Screen):
 
         from .news_detail import NewsDetailScreen
         self.session.open(NewsDetailScreen, url, title)
+
+    # ---------------- translate settings ----------------
+
+    def translateSettings(self):
+        """Otvara podešavanja za prevod"""
+        from ..components.translator import Translator, SUPPORTED_LANGUAGES
+        from Screens.ChoiceBox import ChoiceBox
+        from Screens.InputBox import InputBox
+        from Screens.MessageBox import MessageBox
+        
+        translator = Translator()
+        
+        def settings_menu():
+            menu = [
+                ("Enter Groq API key", "set_key"),
+                ("Choose a language for translation", "set_lang"),
+            ]
+            
+            # Ako ključ već postoji, dodaj opciju za testiranje
+            if translator.api_key:
+                menu.append(("Test connection", "test"))
+                menu.append(("Delete API key", "delete_key"))
+            
+            self.session.openWithCallback(
+                settings_callback, 
+                ChoiceBox, 
+                title="Translation settings",
+                list=menu
+            )
+
+        def settings_callback(choice):
+            if not choice:
+                return
+
+            action = choice[1]
+
+            if action == "set_key":
+                self.session.openWithCallback(
+                    save_key,
+                    InputBox,
+                    title="Enter Groq API key",
+                    text=translator.api_key
+                )
+
+            elif action == "set_lang":
+                self.session.openWithCallback(
+                    save_lang,
+                    ChoiceBox,
+                    title="Select a language for translation",
+                    list=SUPPORTED_LANGUAGES
+                )
+
+            elif action == "test":
+                # Importuj MessageBox OVDE - rešava problem
+                from Screens.MessageBox import MessageBox
+                success, msg = translator.test_connection()
+                if success:
+                    self.session.open(
+                        MessageBox,
+                        "✓ Connection successful! API key is valid.",
+                        MessageBox.TYPE_INFO,
+                        timeout=5
+                    )
+                else:
+                    self.session.open(
+                        MessageBox,
+                        "✗ Error: " + msg,
+                        MessageBox.TYPE_ERROR,
+                        timeout=5
+                    )
+
+            elif action == "delete_key":
+                # Importuj MessageBox OVDE za sigurnost
+                from Screens.MessageBox import MessageBox
+                self.session.openWithCallback(
+                    delete_confirmed,
+                    MessageBox,
+                    "Are you sure you want to delete the API key?",
+                    MessageBox.TYPE_YESNO
+                )
+
+        def delete_confirmed(confirmed):
+            if confirmed:
+                try:
+                    import os
+                    config_path = "/etc/enigma2/ciefp_translate.conf"
+                    if os.path.exists(config_path):
+                        os.remove(config_path)
+                    self.session.open(
+                        MessageBox, 
+                        "API key has been deleted.",
+                        MessageBox.TYPE_INFO, 
+                        timeout=3
+                    )
+                    self["key_blue"].setText("Set API key")
+                except Exception as e:
+                    self.session.open(
+                        MessageBox, 
+                        "Error while deleting: " + str(e),
+                        MessageBox.TYPE_ERROR, 
+                        timeout=3
+                    )
+        
+        def save_key(api_key):
+            if api_key:
+                if translator.save_api_key(api_key):
+                    self.session.open(
+                        MessageBox, 
+                        "✓ API key saved!",
+                        MessageBox.TYPE_INFO, 
+                        timeout=3
+                    )
+                    self["key_blue"].setText("Translate set")
+                else:
+                    self.session.open(
+                        MessageBox, 
+                        "✗ Error saving API key!",
+                        MessageBox.TYPE_ERROR, 
+                        timeout=3
+                    )
+        
+        def save_lang(choice):
+            if choice:
+                lang_code = choice[1]
+                try:
+                    config_path = "/etc/enigma2/ciefp_language.conf"
+                    with open(config_path, "w") as f:
+                        f.write(lang_code)
+                    self.session.open(
+                        MessageBox, 
+                        "✓ The language has been preserved!",
+                        MessageBox.TYPE_INFO, 
+                        timeout=3
+                    )
+                except Exception as e:
+                    self.session.open(
+                        MessageBox, 
+                        "✗ Error saving language: " + str(e),
+                        MessageBox.TYPE_ERROR, 
+                        timeout=3
+                    )
+        
+        settings_menu()

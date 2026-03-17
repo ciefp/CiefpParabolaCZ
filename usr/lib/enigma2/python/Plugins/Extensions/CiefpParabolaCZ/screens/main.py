@@ -21,7 +21,6 @@ from ..components.fetcher import clear_cache
 from .news_hub import CiefpNewsHub
 
 
-
 class CiefpParabolaCZMain(Screen):
     skin = """
     <screen name="CiefpParabolaCZMain" position="center,center" size="1920,1080" title="CiefpParabolaCZ - Parabola.CZ Viewer" flags="wfNoBorder">
@@ -67,7 +66,6 @@ class CiefpParabolaCZMain(Screen):
 
         self.onLayoutFinish.append(self._applyBackground)
 
-
         self["key_red"] = Label("Exit")
         self["key_green"] = Label("CZ/SK Packages")
         self["key_yellow"] = Label("News")
@@ -87,7 +85,6 @@ class CiefpParabolaCZMain(Screen):
             },
             -1,
         )
-
 
     def _applyBackground(self):
         if not self._bg_path:
@@ -118,14 +115,143 @@ class CiefpParabolaCZMain(Screen):
         self.session.open(CiefpNewsHub)
 
     def openTools(self):
-        tools = [("Clear Cache", "clear_cache")]
+        tools = [
+            ("Clear Cache", "clear_cache"),
+            ("Translation settings", "translate_settings")
+        ]
         self.session.openWithCallback(self._toolChosen, ChoiceBox, title="Tools", list=tools)
 
     def _toolChosen(self, choice):
         if not choice:
             return
+        
         action = choice[1]
-        from Screens.MessageBox import MessageBox
+        
         if action == "clear_cache":
+            from Screens.MessageBox import MessageBox
             removed = clear_cache()
-            self.session.open(MessageBox, "Cache obrisan. Uklonjeno fajlova: %d" % removed, MessageBox.TYPE_INFO, timeout=5)
+            self.session.open(MessageBox, "Cache cleared. Files removed.: %d" % removed, MessageBox.TYPE_INFO, timeout=5)
+        
+        elif action == "translate_settings":
+            self._open_translate_settings()
+
+    def _open_translate_settings(self):
+        """Otvara podešavanje za prevod"""
+        from Plugins.Extensions.CiefpParabolaCZ.components.translator import Translator, SUPPORTED_LANGUAGES
+        from Screens.ChoiceBox import ChoiceBox
+        from Screens.InputBox import InputBox
+        from Screens.MessageBox import MessageBox
+        
+        translator = Translator()
+        
+        # Prvi nivo menija
+        menu = []
+        if not translator.api_key:
+            menu.append(("Enter Groq API key", "set_key"))
+        else:
+            menu.append(("Change Groq API key", "set_key"))
+            menu.append(("Test connection", "test"))
+            menu.append(("Delete API key", "delete_key"))
+        
+        menu.append(("Choose a language for translation", "set_lang"))
+        menu.append(("Back", "back"))
+        
+        self.session.openWithCallback(self._translate_menu_callback, ChoiceBox, title="Translation settings", list=menu)
+    
+    def _translate_menu_callback(self, choice):
+        if not choice:
+            return
+        
+        action = choice[1]
+        
+        if action == "set_key":
+            self._set_api_key()
+        elif action == "test":
+            self._test_connection()
+        elif action == "delete_key":
+            self._delete_api_key()
+        elif action == "set_lang":
+            self._set_language()
+        # else "back" - samo se vrati
+    
+    def _set_api_key(self):
+        from Plugins.Extensions.CiefpParabolaCZ.components.translator import Translator
+        from Screens.InputBox import InputBox
+        
+        translator = Translator()
+        self.session.openWithCallback(
+            self._save_api_key,
+            InputBox,
+            title="Enter Groq API key",
+            text=translator.api_key
+        )
+    
+    def _save_api_key(self, api_key):
+        if api_key:
+            from Plugins.Extensions.CiefpParabolaCZ.components.translator import Translator
+            from Screens.MessageBox import MessageBox
+            
+            translator = Translator()
+            if translator.save_api_key(api_key):
+                self.session.open(MessageBox, "✓ API key saved!", MessageBox.TYPE_INFO, timeout=3)
+            else:
+                self.session.open(MessageBox, "✗ Error saving API key!", MessageBox.TYPE_ERROR, timeout=3)
+
+    def _test_connection(self):
+        from Plugins.Extensions.CiefpParabolaCZ.components.translator import Translator
+        from Screens.MessageBox import MessageBox
+
+        translator = Translator()
+        success, message = translator.test_connection()  # ← Ovo vraća (bool, string)
+
+        if success:
+            self.session.open(MessageBox, "✓ " + message, MessageBox.TYPE_INFO, timeout=5)
+        else:
+            self.session.open(MessageBox, "✗ " + message, MessageBox.TYPE_ERROR, timeout=5)
+
+    def _delete_api_key(self):
+        from Screens.MessageBox import MessageBox
+        
+        self.session.openWithCallback(
+            self._delete_confirmed,
+            MessageBox,
+            "Are you sure you want to delete the API key?",
+            MessageBox.TYPE_YESNO
+        )
+    
+    def _delete_confirmed(self, confirmed):
+        if confirmed:
+            from Screens.MessageBox import MessageBox
+            import os
+            
+            try:
+                config_path = "/etc/enigma2/ciefp_translate.conf"
+                if os.path.exists(config_path):
+                    os.remove(config_path)
+                self.session.open(MessageBox, "✓ API key has been deleted.", MessageBox.TYPE_INFO, timeout=3)
+            except Exception as e:
+                self.session.open(MessageBox, "✗ Error while deleting: " + str(e), MessageBox.TYPE_ERROR, timeout=3)
+    
+    def _set_language(self):
+        from Plugins.Extensions.CiefpParabolaCZ.components.translator import SUPPORTED_LANGUAGES
+        from Screens.ChoiceBox import ChoiceBox
+        
+        self.session.openWithCallback(
+            self._save_language,
+            ChoiceBox,
+            title="Select a language for translation",
+            list=SUPPORTED_LANGUAGES
+        )
+    
+    def _save_language(self, choice):
+        if choice:
+            from Screens.MessageBox import MessageBox
+            
+            lang_code = choice[1]
+            try:
+                config_path = "/etc/enigma2/ciefp_language.conf"
+                with open(config_path, "w") as f:
+                    f.write(lang_code)
+                self.session.open(MessageBox, "✓ The language has been preserved!", MessageBox.TYPE_INFO, timeout=3)
+            except Exception as e:
+                self.session.open(MessageBox, "✗ Error saving language: " + str(e), MessageBox.TYPE_ERROR, timeout=3)
