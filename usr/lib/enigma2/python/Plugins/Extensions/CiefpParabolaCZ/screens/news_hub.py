@@ -71,7 +71,7 @@ class CiefpNewsHub(Screen):
         self._bg_path = None
         if resolveFilename and SCOPE_PLUGINS:
             self._bg_path = resolveFilename(
-                SCOPE_PLUGINS, "Extensions/CiefpParabolaCZ/images/background.png"
+                SCOPE_PLUGINS, "Extensions/CiefpParabolaCZ/images/parabolacz.png"
             )
         self.onShown.append(self._loadBackground)
 

@@ -18,7 +18,7 @@ from Screens.MessageBox import MessageBox
 class NewsDetailScreen(Screen):
 
     skin = """
-    <screen name="NewsDetailScreen" position="0,0" size="1920,1080" title="Detail" backgroundColor="#000000">
+    <screen name="NewsDetailScreen" position="center,center" size="1920,1080" title="Detail" backgroundColor="#000000">
         <widget name="title" position="60,40" size="1800,50" font="Regular;40" foregroundColor="#ffff00" backgroundColor="#121212" />
         <widget name="meta" position="60,95" size="1800,35" font="Regular;26" foregroundColor="#30fc03" backgroundColor="#121212" />
 

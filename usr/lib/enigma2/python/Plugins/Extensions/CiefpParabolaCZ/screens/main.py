@@ -60,7 +60,7 @@ class CiefpParabolaCZMain(Screen):
         try:
             self["background"] = Pixmap()
             if resolveFilename and SCOPE_PLUGINS:
-                self._bg_path = resolveFilename(SCOPE_PLUGINS, "Extensions/CiefpParabolaCZ/images/background.png")
+                self._bg_path = resolveFilename(SCOPE_PLUGINS, "Extensions/CiefpParabolaCZ/images/parabolacz.png")
         except Exception:
             pass
 

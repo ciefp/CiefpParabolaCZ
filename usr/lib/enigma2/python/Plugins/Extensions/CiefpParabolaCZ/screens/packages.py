@@ -60,7 +60,7 @@ class CiefpPackagesList(Screen):
         if resolveFilename and SCOPE_PLUGINS:
             self._bg_path = resolveFilename(
                 SCOPE_PLUGINS,
-                "Extensions/CiefpParabolaCZ/images/background.png"
+                "Extensions/CiefpParabolaCZ/images/parabolacz.png"
             )
 
         # učitaj pixmap tek kad je screen “na ekranu”
