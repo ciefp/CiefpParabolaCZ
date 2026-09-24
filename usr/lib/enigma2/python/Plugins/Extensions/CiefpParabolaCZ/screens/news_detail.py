@@ -31,9 +31,13 @@ class NewsDetailScreen(Screen):
     """
 
     def __init__(self, session, url, title):
-        self.url = url
+        self.url = url  # <-- OVA LINIJA MORA POSTOJATI
         self.original_text = ""
         self.translated_text = ""
+        self.original_title = ""  # dodato
+        self.translated_title = ""  # dodato
+        self.original_meta = ""  # dodato
+        self.translated_meta = ""  # dodato
         self.is_translated = False
         self.translator = Translator()
         self.target_lang = self._load_target_language()
@@ -103,7 +107,12 @@ class NewsDetailScreen(Screen):
             self["meta"].setText(meta)
             
             # Sačuvaj originalni tekst
+            self["meta"].setText(meta)
+
+            # Sačuvaj originalni tekst, naslov i meta
             self.original_text = text
+            self.original_title = title
+            self.original_meta = meta
             self["content"].setText(text)
 
             self._setCover(img_url)
@@ -136,23 +145,43 @@ class NewsDetailScreen(Screen):
         if not self.translator.api_key:
             self._setup_api_key()
             return
-            
+
         if self.is_translated:
             # Vrati na original
             self["content"].setText(self.original_text)
+            self["title"].setText(self.original_title)
+            self["meta"].setText(self.original_meta)
             self.is_translated = False
         else:
             # Prevedi ako već nije prevedeno
             if not self.translated_text:
                 self["content"].setText("Translation in progress...")
+
+                # Prevedi naslov
+                if self.original_title:
+                    self.translated_title = self.translator.translate(
+                        self.original_title,
+                        target_language=self.target_lang
+                    )
+
+                # Prevedi meta liniju
+                if self.original_meta:
+                    self.translated_meta = self.translator.translate(
+                        self.original_meta,
+                        target_language=self.target_lang
+                    )
+
+                # Prevedi glavni tekst
                 self.translated_text = self.translator.translate(
-                    self.original_text, 
+                    self.original_text,
                     target_language=self.target_lang
                 )
-            
+
+            self["title"].setText(self.translated_title or self.original_title)
+            self["meta"].setText(self.translated_meta or self.original_meta)
             self["content"].setText(self.translated_text)
             self.is_translated = True
-        
+
         self._update_translate_button()
 
     def _setup_api_key(self):
@@ -206,9 +235,13 @@ class NewsDetailScreen(Screen):
                 self.target_lang = lang_code
                 # Resetuj prevod ako je bio aktivan
                 self.translated_text = ""
+                self.translated_title = ""
+                self.translated_meta = ""
                 if self.is_translated:
                     self.is_translated = False
                     self["content"].setText(self.original_text)
+                    self["title"].setText(self.original_title)
+                    self["meta"].setText(self.original_meta)
                 self.session.open(MessageBox, "The language has been preserved!", MessageBox.TYPE_INFO, timeout=3)
             except Exception as e:
                 self.session.open(MessageBox, "Error while saving language!", MessageBox.TYPE_ERROR, timeout=3)

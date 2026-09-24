@@ -27,7 +27,7 @@ def Plugins(**kwargs):
     return [
         PluginDescriptor(
             name="CiefpParabolaCZ",
-            description="Parabola.cz viewer (satellites, packages, news) v1.1",
+            description="Parabola.cz viewer (satellites, packages, news) v1.2",
             where=PluginDescriptor.WHERE_PLUGINMENU,
             fnc=main,
             icon=icon

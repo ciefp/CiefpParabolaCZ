@@ -25,14 +25,13 @@ SUPPORTED_LANGUAGES = [
     ("Romanian", "ro"),
     ("Bulgarian", "bg"),
 ]
-
 class Translator:
     def __init__(self, api_key=None):
         self.api_key = api_key or self._load_api_key()
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         # Zamenjeno sa aktivnim modelom
-        self.model = "llama-3.3-70b-versatile"  # Ovaj model radi
-        
+        self.model = "openai/gpt-oss-120b"  # Ovo je model koji Groq preporučuje kao zamenu
+
     def _load_api_key(self):
         """Učitava API ključ iz konfiguracionog fajla"""
         try:
